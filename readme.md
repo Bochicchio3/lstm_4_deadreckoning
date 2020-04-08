@@ -21,7 +21,13 @@ Fri
 
 
 
-
 ### Note section
 
 INIM conference on indoor mapping and localization, may be really interesting.
+
+
+![](2020-04-08-17-48-20.png)
+
+![](2020-04-08-17-48-36.png)
+
+![](2020-04-08-18-06-54.png)

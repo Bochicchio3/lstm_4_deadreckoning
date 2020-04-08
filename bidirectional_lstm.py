@@ -1,21 +1,16 @@
-# %%
-#forse sta installando cose 
-#  ah devi installare anche live share extension pack
+
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import collections
 import matplotlib.pyplot as plt
 import numpy as np
 import os 
-
+import argparse
 import tensorflow as tf
 
 from tensorflow.keras import layers
 
-# %%
-
-# READ THE DATA
-
+class mymodel
 
 os.chdir('./home/alfredo/Desktop/PROJECTS/indoor_mapping/Oxford Inertial Odometry Dataset_2.0(1)/Oxford Inertial Odometry Dataset/handheld/data1/syn/')
 
