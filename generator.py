@@ -75,6 +75,8 @@ class DataGenerator(tf.keras.utils.Sequence):
             imu_copy = imu.copy()[starting_point:, :]
             vicon_copy = vicon.copy()[starting_point:, :]
 
+            splitting = [self.window_length]
+
 
 
 
