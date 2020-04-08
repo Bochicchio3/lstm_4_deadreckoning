@@ -5,16 +5,37 @@ load the json one peace at time in order to be able to
 compute the training even without more than 16 GB of RAM available
 """
 
+
 import os
 import numpy as np
 import tensorflow as tf
-import dataset_utils
+
+
+"""
+CSV for the dataset are
+
+input: [rotation_rate_x(radians/s) rotation_rate_y(radians/s) rotation_rate_z(radians/s) user_acc_x(G) user_acc_y(G) user_acc_z(G)]
+ground truth: [translation.x translation.y rotation.z ]
+
+
+vicon (vi*.csv)
+Time  Header  translation.x translation.y translation.z rotation.x rotation.y rotation.z rotation.w
+
+
+Sensors (imu*.csv)
+Time attitude_roll(radians) attitude_pitch(radians) attitude_yaw(radians) rotation_rate_x(radians/s) rotation_rate_y(radians/s) rotation_rate_z(radians/s) gravity_x(G) gravity_y(G) gravity_z(G) user_acc_x(G) user_acc_y(G) user_acc_z(G) magnetic_field_x(microteslas) magnetic_field_y(microteslas) magnetic_field_z(microteslas)
+
+"""
+
+
 
 
 class DataGenerator(tf.keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, directory_path, batch_size, windows_length = 200):
+    def __init__(self, directory_path, batch_size, window_length = 200):
+        
         'Initialization'
+        
         '''
         Load the files and create the question answer tuple
         store everithing
@@ -25,42 +46,44 @@ class DataGenerator(tf.keras.utils.Sequence):
         @param vocab the vocabulary
         @param max_num_samples integer for the maximum number of samples
         '''
-        self.Allfiles = os.listdir(directory_path) #list of all the files from the directory
-        self.files = self.Allfiles.copy()
-        print("\n\nthe file we will use for generator are: {}\n\n".format(self.files))
-        self.current_file = self.files.pop()
-        print(self.current_file)
-        self.path = directory_path
+        
+        self.windows_length=windows_length
         self.batch_size = batch_size
-
-        self.data = tf.keras.utils.get_file(directory_path + self.current_file)
-        """
-        CSV for the dataset are
         
-        input: [rotation_rate_x(radians/s) rotation_rate_y(radians/s) rotation_rate_z(radians/s) user_acc_x(G) user_acc_y(G) user_acc_z(G)]
-        ground truth: [translation.x translation.y rotation.z ]
+        self.all_imu_data = []
+        self.all_vicon_data = []
+
+        self.training_dir=['data1','data2','data3','data4']
+        self.testing_dir=['data5']
+
+        root='/home/alfredo/Desktop/PROJECTS/indoor_mapping/Oxford Inertial Odometry Dataset_2.0/Oxford Inertial Odometry Dataset/handheld/'
+
+        self.load_data()
+
+        # number of sequences divided by number of batches
+        self.number_sequences = sum([d.shape[0]//window_length for d in self.all_imu_data])
         
+
+    def load_data(self):
         
-        vicon (vi*.csv)
-        Time  Header  translation.x translation.y translation.z rotation.x rotation.y rotation.z rotation.w
+        for directory in training_dir:
+            
+            os.chdir(root+directory)
+            self.imu_files=glob.glob('imu*')
+            self.vicon_files=glob.glob('vi*')
+
+            for file in self.imu_files:
+                imu_data = np.genfromtxt(os.path.join(directory, file), delimiter=',')[:,2:]
+                
+            for file in vicon_files:
+                vicon_data = np.genfromtxt(os.path.join(directory, file), delimiter=',')[:,2:]
 
 
-        Sensors (imu*.csv)
-        Time attitude_roll(radians) attitude_pitch(radians) attitude_yaw(radians) rotation_rate_x(radians/s) rotation_rate_y(radians/s) rotation_rate_z(radians/s) gravity_x(G) gravity_y(G) gravity_z(G) user_acc_x(G) user_acc_y(G) user_acc_z(G) magnetic_field_x(microteslas) magnetic_field_y(microteslas) magnetic_field_z(microteslas)
-       
-        """
 
-
-
-
-
-
-    def num_files(self):
-        return len(self.Allfiles)
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.input['attention_mask']) / self.batch_size))
+        return self.number_sequences//self.batch_size
 
     def __getitem__(self, index):
         'Generate one batch of data'
@@ -86,11 +109,5 @@ class DataGenerator(tf.keras.utils.Sequence):
         return x, y
 
     def on_epoch_end(self):
-        # change the current file and add it to the done list
-        if not self.files:
-            self.files = self.Allfiles
-        self.namefile = self.files.pop()
-
-
-        # update the input and output tensors for this epoch
+        self.last_index = 0
 
