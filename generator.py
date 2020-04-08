@@ -9,7 +9,7 @@ compute the training even without more than 16 GB of RAM available
 import os
 import numpy as np
 import tensorflow as tf
-
+import random
 
 """
 CSV for the dataset are
@@ -62,7 +62,22 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         # number of sequences divided by number of batches
         self.number_sequences = sum([d.shape[0]//window_length for d in self.all_imu_data])
-        
+
+    def preprocess(self):
+        # for all the file 
+        self.windows_input = []
+        self.windows_output = []
+        for imu, vicon in zip(self.imu_data, self.vicon_data):
+            # take the windows
+            num_windows = imu.shape[0]//self.window_length
+            starting_point = random.randint(0, imu.shape[0]%self.window_length)
+
+            imu_copy = imu.copy()[starting_point:, :]
+            vicon_copy = vicon.copy()[starting_point:, :]
+
+
+
+
 
     def load_data(self):
         

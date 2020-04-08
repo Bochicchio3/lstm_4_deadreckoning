@@ -7,7 +7,14 @@ import gin
 """
 PathPrediction.recurrent_layer = @tf.keras.layers.LSTM
 """
+
+
+
 class PathPrediction(tf.keras.Model):
+
+    """
+    input: [input_size, batch_size, input_dimention, recurrent_hidden_size, rec_dropout, recurrent_layer]
+    """
     
     def __init__(self,
                 input_size,
@@ -20,8 +27,6 @@ class PathPrediction(tf.keras.Model):
                 ):
         super().__init__(name = "PathPrediction")
 
-
-        
         self.input_size = input_size
         self.input = tf.keras.layers.Input(batch_shape = (batch_size, None, input_dimention), name = "encoder_input" )
 
