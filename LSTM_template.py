@@ -1,14 +1,6 @@
 import argparse
 import tensorflow as tf
-import gin
-
-@gin.configurable
-# see https://github.com/google/gin-config
-"""
-PathPrediction.recurrent_layer = @tf.keras.layers.LSTM
-"""
-
-
+import generator
 
 class PathPrediction(tf.keras.Model):
 
@@ -43,6 +35,7 @@ input_size fissa
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
+    '''
     parser.add_argument('--model', type=str, default="LSTM", 
                 help="The recurrent neural network you want to use: currently we support LSTM and GRU")
 
@@ -51,3 +44,6 @@ if __name__ == "__main__":
     model.add(Dense(1))
     model.compile(loss='mean_squared_error', optimizer='adam')
     model.fit(trainX, trainY, epochs=100, batch_size=1, verbose=2)
+    '''
+    path = "Oxford Inertial Odometry Dataset_2.0/Oxford Inertial Odometry Dataset/handheld"
+    train_generator = generator.DataGenerator("Oxford Inertial Odometry Dataset_2.0/Oxford Inertial Odometry Dataset/handheld", 100)

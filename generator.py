@@ -10,6 +10,7 @@ import os
 import numpy as np
 import tensorflow as tf
 import random
+import glob
 
 """
 CSV for the dataset are
@@ -32,7 +33,7 @@ Time attitude_roll(radians) attitude_pitch(radians) attitude_yaw(radians) rotati
 
 class DataGenerator(tf.keras.utils.Sequence):
     'Generates data for Keras'
-    def __init__(self, directory_path, batch_size, window_length = 200):
+    def __init__(self, directory_path, batch_size, window_length = 200, validation = False):
         
         'Initialization'
         
@@ -46,56 +47,73 @@ class DataGenerator(tf.keras.utils.Sequence):
         @param vocab the vocabulary
         @param max_num_samples integer for the maximum number of samples
         '''
-        
-        self.windows_length=windows_length
+        self.type = 'syn'
+
+        self.windows_length=window_length
         self.batch_size = batch_size
         
         self.all_imu_data = []
         self.all_vicon_data = []
 
+        self.path = "Oxford Inertial Odometry Dataset_2.0/Oxford Inertial Odometry Dataset/handheld"
         self.training_dir=['data1','data2','data3','data4']
         self.testing_dir=['data5']
 
-        root='/home/alfredo/Desktop/PROJECTS/indoor_mapping/Oxford Inertial Odometry Dataset_2.0/Oxford Inertial Odometry Dataset/handheld/'
-
-        self.load_data()
+        if validation:
+            self.load_data(self.testing_dir)
+        else:
+            self.load_data(self.training_dir)
 
         # number of sequences divided by number of batches
         self.number_sequences = sum([d.shape[0]//window_length for d in self.all_imu_data])
+        self.from_files_to_windows()
+        print("finish to load the data")
 
-    def preprocess(self):
-        # for all the file 
+    def from_files_to_windows(self):
+        # Function that takes all the data from the files and create a list of windows for the epoch 
         self.windows_input = []
         self.windows_output = []
-        for imu, vicon in zip(self.imu_data, self.vicon_data):
+        for imu, vicon in zip(self.all_imu_data, self.all_vicon_data):
             # take the windows
-            num_windows = imu.shape[0]//self.window_length
-            starting_point = random.randint(0, imu.shape[0]%self.window_length)
+            num_windows = imu.shape[0]//self.windows_length
+            chunks_to_delete = imu.shape[0]%self.windows_length
+            starting_point = random.randint(0, imu.shape[0]%self.windows_length)
 
-            imu_copy = imu.copy()[starting_point:, :]
-            vicon_copy = vicon.copy()[starting_point:, :]
-
-            splitting = [self.window_length]
-
-
-
-
-
-    def load_data(self):
-        
-        for directory in training_dir:
-            
-            os.chdir(root+directory)
-            self.imu_files=glob.glob('imu*')
-            self.vicon_files=glob.glob('vi*')
-
-            for file in self.imu_files:
-                imu_data = np.genfromtxt(os.path.join(directory, file), delimiter=',')[:,2:]
-                
-            for file in vicon_files:
-                vicon_data = np.genfromtxt(os.path.join(directory, file), delimiter=',')[:,2:]
+            if chunks_to_delete!= starting_point:
+                imu_copy = imu.copy()[starting_point:- chunks_to_delete + starting_point, :]
+                vicon_copy = vicon.copy()[starting_point:-chunks_to_delete +starting_point, :]
+            else:
+                # if I have to 
+                imu_copy = imu.copy()[starting_point:, :]
+                vicon_copy = vicon.copy()[starting_point:, :]
 
 
+            self.windows_input += np.array_split(imu_copy, num_windows)
+
+            self.windows_output += np.array_split(vicon_copy, num_windows)
+
+            last_peace = imu_copy[-200:, :]
+            assert((self.windows_input[-1] == last_peace).min())
+
+            first_peace = imu_copy[:200, :]
+            assert((self.windows_input[-num_windows] == first_peace).min())
+
+
+
+
+    def load_data(self, directory_list):
+    
+        for directory in directory_list:
+
+            imu_files = glob.glob(os.path.join(self.path,directory, self.type,  'imu*.csv'))
+            vicon_files = glob.glob(os.path.join(self.path, directory, self.type, 'vi*.csv'))
+
+
+            for file in imu_files:
+                self.all_imu_data.append(np.genfromtxt(file, delimiter=',')[:,2:])
+                index = file[-5]
+                vicon_file = [v for v in vicon_files if v[-5] == file[-5]]
+                self.all_vicon_data.append(np.genfromtxt(*vicon_file, delimiter=',')[:,2:])
 
 
     def __len__(self):
@@ -103,28 +121,9 @@ class DataGenerator(tf.keras.utils.Sequence):
         return self.number_sequences//self.batch_size
 
     def __getitem__(self, index):
-        'Generate one batch of data'
-        '''
-        this is the dictionary names for the input and output of the model
-         x = {
-            'input_ids':
-            'attention_mask':
-            'token_type_ids':
-        }
-        y = {
-            'start':
-            'end':
-            'type':
-        }
-        '''
-        x = {k:v[self.batch_size*index:self.batch_size*(index+1)] for k, v in self.input.items()}
-
-
-        y = [v[self.batch_size*index:self.batch_size*(index+1)] for v in self.output]
-
-
-        return x, y
+        bs = self.batch_size
+        return self.windows_input[bs*index:bs*(index + 1)], self.windows_output[bs*index:bs*(index + 1)]
 
     def on_epoch_end(self):
-        self.last_index = 0
+        self.from_files_to_windows()
 
